@@ -4,208 +4,312 @@ package com.example.ricardofernandes.tohomecliente;
  * Created by RicardoFernandes on 07/06/2017.
  */
 
-
+import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ExpandableListView;
-import android.widget.Toast;
+import android.widget.AdapterView;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
+import android.widget.TextView;
+
+import com.example.ricardofernandes.tohomecliente.helper.SQLiteHandler;
+import com.example.ricardofernandes.tohomecliente.helper.SessionManager;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.List;
 
-import static android.widget.Toast.makeText;
+public class EtapasResponsavel extends ListActivity {
+    String idResi;
+    String EtapaId;
 
-public class EtapasResponsavel extends AppCompatActivity {
+    private ProgressDialog pDialog;
 
-    private LinkedHashMap<String, GroupInfo> subjects = new LinkedHashMap<String, GroupInfo>();
-    private ArrayList<GroupInfo> deptList = new ArrayList<GroupInfo>();
+    JSONParser jsonParser = new JSONParser();
+    JSONParser jParser = new JSONParser();
 
-    private CustomAdapter listAdapter;
-    private ExpandableListView simpleExpandableListView;
-    private static Button buttonSalvar;
+
+    ArrayList<HashMap<String, String>> productsList;
+
+    private static String url_get_etapas = "http://172.16.128.186//android_connect/get_etapas_concluidas_resp.php";
+    private static String url_update_etapa = "http://172.16.128.186//android_connect/update_etapa_resp.php";
+//    private static String url_get_etapas = "http://192.168.0.14//android_connect/get_etapas.php";
+    //  private static String url_update_etapa = "http://192.168.0.14//android_connect/update_etapa.php";
+
+    private static final String TAG_ETAPA = "tbl_name";
+    private static final String TAG_PID = "id";
+    private static final String TAG_NAME = "name";
+    private static final String TAG_DETAILS = "details";
+    private static final String TAG_STATUS = "status";
+    private static final String TAG_IDRESI = "id_residencia";
+
+    private static final String TAG_SUCCESS = "success";
+
+    JSONArray etapas = null;
+
+    private SQLiteHandler db;
+    private SessionManager session;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_etapas_responsavel);
         setTitle("Etapas Responsável");
-        onButtonClickListener();
+        db = new SQLiteHandler(getApplicationContext());
+        session = new SessionManager(getApplicationContext());
+        HashMap<String, String> user = db.getUserDetailsResi();
+        String ResiId = user.get("id");
+        idResi = ResiId;
 
-        // add data for displaying in expandable list view
-        loadData();
 
-        //get reference of the ExpandableListView
-        simpleExpandableListView = (ExpandableListView) findViewById(R.id.simpleExpandableListView);
-        // create the adapter by passing your ArrayList data
-        listAdapter = new CustomAdapter(EtapasResponsavel.this, deptList);
-        // attach the adapter to the expandable list view
-        simpleExpandableListView.setAdapter(listAdapter);
 
-        //expand all the Groups
-        //expandAll();
+        productsList = new ArrayList<HashMap<String, String>>();
+        new LoadAllProducts().execute();
+        ListView lv = getListView();
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-        // setOnChildClickListener listener for child row click
-        simpleExpandableListView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
             @Override
-            public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
-                //get the group header
-                GroupInfo headerInfo = deptList.get(groupPosition);
-                //get the child info
-                ChildInfo detailInfo = headerInfo.getProductList().get(childPosition);
-                //display it or do something with it
-//                Toast.makeText(getBaseContext(), " Clicked on :: " + headerInfo.getName()
-//                        + "/" + detailInfo.getName(), Toast.LENGTH_LONG).show();
-                return false;
-            }
-        });
-        // setOnGroupClickListener listener for group heading click
-        simpleExpandableListView.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
-            @Override
-            public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
-                //get the group header
-                GroupInfo headerInfo = deptList.get(groupPosition);
-                //display it or do something with it
-//                Toast.makeText(getBaseContext(), "Etapa: " + headerInfo.getName(),
-//                        Toast.LENGTH_LONG).show();
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                // getting values from selected ListItem
+                String idEtapa = ((TextView) view.findViewById(R.id.id)).getText()
+                        .toString();
+                String idResi = ((TextView) view.findViewById(R.id.idresi)).getText()
+                        .toString();
+                EtapaId = idEtapa;
+                //   db.addEtapa(idEtapa,idResi,null,null,null);
+                // Starting new intent
+//                Intent in = new Intent(getApplicationContext(),
+//                        MainActivity.class);
+              //  showAlert();
+                // sending pid to next activity
+                //db.deleteEtapas();
 
-                return false;
+
+                // starting new activity and expecting some response back
+                //  startActivityForResult(in, 100);
             }
         });
 
+    }
+
+
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // if result code 100
+        if (resultCode == 100) {
+            // if result code 100 is received
+            // means user edited/deleted product
+            // reload this screen again
+            Intent intent = getIntent();
+            finish();
+            startActivity(intent);
+        }
 
     }
 
-    public void onButtonClickListener(){
-        buttonSalvar = (Button)findViewById(R.id.button5);
-        buttonSalvar.setOnClickListener(new View.OnClickListener(){
-                                            public void onClick(View v){
-                                                AlertDialog.Builder a_builder = new AlertDialog.Builder(EtapasResponsavel.this);
-                                                a_builder.setMessage("Deseja salvar?")
-                                                        .setPositiveButton("OK",new DialogInterface.OnClickListener(){
-                                                            public void onClick(DialogInterface dialog, int which){
-                                                                //Aqui tem que pegar as checkbox e dar update no banco
-                                                                makeText(EtapasResponsavel.this,"Salvo com sucesso!", Toast.LENGTH_LONG).show();
-                                                                // makeText(Etapas.this,"Salvo com sucesso!",Toast.LENGTH_LONG).show();
-                                                                //sleep(500);
-                                                                finish();
-                                                            }
-                                                        })
-                                                        .setNegativeButton("Cancelar", new DialogInterface.OnClickListener()
-                                                        {
-                                                            public void onClick(DialogInterface dialog, int which){
-                                                                dialog.cancel();
-                                                            }
-                                                        });
-                                                AlertDialog alert = a_builder.create();
-                                                alert.show();
+    class LoadAllProducts extends AsyncTask<String, String, String> {
 
-                                            }
-                                        }
-        );
-    }
+        /**
+         * Before starting background thread Show Progress Dialog
+         */
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pDialog = new ProgressDialog(EtapasResponsavel.this);
+            pDialog.setMessage("Loading products. Please wait...");
+            pDialog.setIndeterminate(false);
+            pDialog.setCancelable(false);
+            pDialog.show();
+        }
 
-    //method to expand all groups
-    private void expandAll() {
-        int count = listAdapter.getGroupCount();
-        for (int i = 0; i < count; i++) {
-            simpleExpandableListView.expandGroup(i);
+        /**
+         * getting All products from url
+         */
+        protected String doInBackground(String... args) {
+            // Building Parameters
+            List<NameValuePair> params = new ArrayList<NameValuePair>();
+            params.add(new BasicNameValuePair("id_residencia", idResi));
+
+            // getting JSON string from URL
+            JSONObject json = jParser.makeHttpRequest(url_get_etapas, "GET", params);
+
+            // Check your log cat for JSON reponse
+            Log.d("All Products: ", json.toString());
+
+            try {
+                // Checking for SUCCESS TAG
+                int success = json.getInt(TAG_SUCCESS);
+
+                if (success == 1) {
+                    // products found
+                    // Getting Array of Products
+                    etapas = json.getJSONArray(TAG_ETAPA);
+
+                    // looping through All Products
+                    for (int i = 0; i < etapas.length(); i++) {
+                        JSONObject c = etapas.getJSONObject(i);
+
+                        // Storing each json item in variable
+                        String id = c.getString(TAG_PID);
+                        String name = c.getString(TAG_NAME);
+                        String details = c.getString(TAG_DETAILS);
+                        String idresi = c.getString(TAG_IDRESI);
+                        String status = c.getString(TAG_STATUS);
+
+
+                        // creating new HashMap
+                        HashMap<String, String> map = new HashMap<String, String>();
+
+                        // adding each child node to HashMap key => value
+                        map.put(TAG_PID, id);
+                        map.put(TAG_NAME, name);
+                        map.put(TAG_DETAILS, details);
+                        map.put(TAG_IDRESI, idresi);
+                        map.put(TAG_STATUS, status);
+
+
+                        // adding HashList to ArrayList
+                        productsList.add(map);
+                    }
+                } else {
+                    // no products found
+                    // Launch Add New product Activity
+//                    Intent i = new Intent(getApplicationContext(),
+//                            NewProductActivity.class);
+//                    // Closing all previous activities
+//                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//                    startActivity(i);
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        protected void onPostExecute(String file_url) {
+            // dismiss the dialog after getting all products
+            pDialog.dismiss();
+            // updating UI from Background Thread
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    /**
+                     * Updating parsed JSON data into ListView
+                     * */
+                    ListAdapter adapter = new SimpleAdapter(
+                            EtapasResponsavel.this, productsList,
+                            R.layout.list_item_etapa_resp, new String[] { TAG_PID,
+                            TAG_NAME,TAG_DETAILS,TAG_STATUS,TAG_IDRESI},
+                            new int[] { R.id.id, R.id.name,R.id.details,R.id.status,R.id.idresi});
+                    // updating listview
+                    setListAdapter(adapter);
+                }
+            });
+
         }
     }
 
-    //method to collapse all groups
-    private void collapseAll() {
-        int count = listAdapter.getGroupCount();
-        for (int i = 0; i < count; i++) {
-            simpleExpandableListView.collapseGroup(i);
-        }
-    }
+    class UpdateEtapa extends AsyncTask<String, String, String> {
 
-    //load some initial data into out list
-    private void loadData() {
-
-
-
-        addProduct("Etapa 1", "Marcação da obra",false);
-        addProduct("Etapa 1", "Valetas e brocas",false);
-        addProduct("Etapa 1", "Alicerce e impermeabilização",false);
-        addProduct("Etapa 1", "30 % alvenaria (altura de 1,20m)",false);
-        addProduct("Etapa 1", "Contra-verga com canaleta e concreto armado com treliça",false);
-
-        addProduct("Etapa 2", "Final da alvenaria",false);
-        addProduct("Etapa 2", "Verga nas portas e janelas com canaleta e concreto armado com treliça",false);
-        addProduct("Etapa 2", "Vigas de respaldo",false);
-        addProduct("Etapa 2", "Colocação da laje",false);
-        addProduct("Etapa 2", "Concretagem da laje",false);
-        addProduct("Etapa 2", "Entrada de água e energia e colocação das caixinhas na laje",false);
-
-        addProduct("Etapa 3", "Telhado (pulverizar madeira com cupicida)",false);
-        addProduct("Etapa 3", "Elétrica ( eletrodutos e caixinhas nas paredes)",false);
-        addProduct("Etapa 3", "Encanamento de água",false);
-        addProduct("Etapa 3", "50% encanamento de esgoto e águas pluviais( Colocar Caixa de gordura)",false);
-        addProduct("Etapa 3", "70 % chapisco e reboco interno",false);
-        addProduct("Etapa 3", "Contra-piso interno",false);
-
-        addProduct("Etapa 4", "Colocar os batentes e as janelas Sassazaki",false);
-        addProduct("Etapa 4", "Terminar reboco interno",false);
-        addProduct("Etapa 4", "70% reboco e chapisco externo",false);
-        addProduct("Etapa 4", "100% azulejo",false);
-        addProduct("Etapa 4", "50% piso",false);
-        addProduct("Etapa 4", "Início da pintura (Selador nos cômodos liberados)",false);
-        addProduct("Etapa 4", "Cimentado externo",false);
-        addProduct("Etapa 4", "Final de hidráulica, esgoto",false);
-
-        addProduct("Etapa 5", "Terminar reboco externo",false);
-        addProduct("Etapa 5", "Terminar colocação do piso e rodapé; soleiras e peitoris",false);
-        addProduct("Etapa 5", "Assentar portas e fechaduras",false);
-        addProduct("Etapa 5", "Final da pintura",false);
-
-        addProduct("Etapa 6", "Colocação do vaso sanitário, lavatório, pia e tanque",false);
-        addProduct("Etapa 6", "Final da elétrica (enfiação, espelhos das caixinhas)",false);
-        addProduct("Etapa 6", "Limpeza geral da casa",false);
-        addProduct("Etapa 6", "Retirada do Habite-se",false);
-        addProduct("Etapa 6", "Averbação em cartório.",false);
-
-    }
-
-
-    //here we maintain our products in various departments
-    private int addProduct(String department, String product, boolean status) {
-
-        int groupPosition = 0;
-        status = false;
-
-        //check the hash map if the group already exists
-        GroupInfo headerInfo = subjects.get(department);
-        //add the group if doesn't exists
-        if (headerInfo == null) {
-            headerInfo = new GroupInfo();
-            headerInfo.setName(department);
-            subjects.put(department, headerInfo);
-            deptList.add(headerInfo);
+        /**
+         * Before starting background thread Show Progress Dialog
+         * */
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pDialog = new ProgressDialog(EtapasResponsavel.this);
+            pDialog.setMessage("Updating Product..");
+            pDialog.setIndeterminate(false);
+            pDialog.setCancelable(true);
+            pDialog.show();
         }
 
-        //get the children for the group
-        ArrayList<ChildInfo> productList = headerInfo.getProductList();
-        //size of the children list
-        int listSize = productList.size();
-        //add to the counter
-        listSize++;
+        /**
+         * Creating product
+         * */
+        protected String doInBackground(String... args) {
 
-        //create a new child and add that to the group
-        ChildInfo detailInfo = new ChildInfo();
-        detailInfo.setSequence(String.valueOf(listSize));
-        detailInfo.setName(product);
-        detailInfo.setStatus(false);
-        productList.add(detailInfo);
-        headerInfo.setProductList(productList);
+            // Building Parameters
+            List<NameValuePair> params = new ArrayList<NameValuePair>();
+            params.add(new BasicNameValuePair("id", EtapaId));
+            // params.add(new BasicNameValuePair("idresi", idResi));
+            // getting JSON Object
+            // Note that create product url accepts POST method
+            JSONObject json = jsonParser.makeHttpRequest(url_update_etapa,
+                    "POST", params);
 
-        //find the group position inside the list
-        groupPosition = deptList.indexOf(headerInfo);
-        return groupPosition;
+            // check log cat fro response
+            Log.d("Update Response", json.toString());
+
+            // check for success tag
+            try {
+                int success = json.getInt(TAG_SUCCESS);
+
+                if (success == 1) {
+                    // successfully created product
+                    Intent i = new Intent(getApplicationContext(), EtapasCliente.class);
+                    startActivity(i);
+
+                    // closing this screen
+                    finish();
+                } else {
+                    // failed to create product
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        /**
+         * After completing background task Dismiss the progress dialog
+         * **/
+        protected void onPostExecute(String file_url) {
+            // dismiss the dialog once done
+            pDialog.dismiss();
+        }
+
     }
+    public void showAlert() {
+        AlertDialog.Builder myAlert = new AlertDialog.Builder(this);
+        myAlert.setMessage("Deseja Concluir esta etapa?")
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        new UpdateEtapa().execute();
+                        //  db.deleteEtapas();
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialogInterface, int i1) {
+                        dialogInterface.dismiss();
+                    }
+                })
+                .setTitle("Etapa concluída")
+                .create();
+        myAlert.show();
+
+    }
+
+
+
+
 }
 
