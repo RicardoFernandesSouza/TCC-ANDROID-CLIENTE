@@ -24,6 +24,17 @@
         android:textSize="21dip"
         android:textStyle="bold" />
 
+     <TextView
+        android:id="@+id/status"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="6dip"
+        android:paddingTop="6dip"
+        android:textColor="@color/bg_register"
+        android:textSize="17dip"
+        android:textStyle="bold"
+         />
+
     <TextView
         android:id="@+id/idresi"
         android:layout_width="fill_parent"

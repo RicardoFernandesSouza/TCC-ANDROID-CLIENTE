@@ -88,11 +88,11 @@ public class SQLiteHandler extends SQLiteOpenHelper {
                 " INTEGER" +  ")";
         db.execSQL(CREATE_TABLE_RESIDENCIA);
 
-        String CREATE_TABLE_ETAPAS = "CREATE TABLE " + TABLE_ETAPAS + "("
-                + KEY_ETAPA_ID + " INTEGER PRIMARY KEY,"  + KEY_ETAPA_RESI_ID + " TEXT,"
-                + KEY_ETAPA_NAME + " TEXT," + KEY_ETAPA_DETAILS + " TEXT,"
-                + KEY_ETAPA_STATUS + " TEXT," +  ")";
-        db.execSQL(CREATE_TABLE_ETAPAS);
+//        String CREATE_TABLE_ETAPAS = "CREATE TABLE " + TABLE_ETAPAS + "("
+//                + KEY_ETAPA_ID + " INTEGER PRIMARY KEY,"  + KEY_ETAPA_RESI_ID + " TEXT,"
+//                + KEY_ETAPA_NAME + " TEXT," + KEY_ETAPA_DETAILS + " TEXT,"
+//                + KEY_ETAPA_STATUS + " TEXT," +  ")";
+//        db.execSQL(CREATE_TABLE_ETAPAS);
 
         //AQUI PASSAMOS TODAS AS OUTRAS TABELAS QUE TEM NO BANCO
 

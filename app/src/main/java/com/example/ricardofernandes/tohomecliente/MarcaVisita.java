@@ -60,6 +60,7 @@ public class MarcaVisita extends ListActivity {
     private static final String TAG_PID = "pid";
     private static final String TAG_DATA = "datav";
     private static final String TAG_IDRESI = "idresi";
+    private static final String TAG_STATUS = "status";
     // JSON Node names
     private static final String TAG_SUCCESS = "success";
 
@@ -153,6 +154,7 @@ public class MarcaVisita extends ListActivity {
                         String id = c.getString(TAG_PID);
                         String data = c.getString(TAG_DATA);
                         String idresi = c.getString(TAG_IDRESI);
+                        String status = c.getString(TAG_STATUS);
 
 
                         // creating new HashMap
@@ -162,6 +164,7 @@ public class MarcaVisita extends ListActivity {
                         map.put(TAG_PID, id);
                         map.put(TAG_DATA, data);
                         map.put(TAG_IDRESI, idresi);
+                        map.put(TAG_STATUS, status);
 
                         // adding HashList to ArrayList
                         productsList.add(map);
@@ -194,8 +197,8 @@ public class MarcaVisita extends ListActivity {
                     ListAdapter adapter = new SimpleAdapter(
                             MarcaVisita.this, productsList,
                             R.layout.list_item_data, new String[] { TAG_PID,
-                            TAG_DATA,TAG_IDRESI},
-                            new int[] { R.id.pid, R.id.data,R.id.idresi});
+                            TAG_DATA,TAG_IDRESI,TAG_STATUS},
+                            new int[] { R.id.pid, R.id.data,R.id.idresi,R.id.status});
                     // updating listview
                     setListAdapter(adapter);
                 }
