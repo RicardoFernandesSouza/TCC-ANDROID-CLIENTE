@@ -37,7 +37,7 @@ public class EscolhaProjeto extends ListActivity {
     JSONParser jParser = new JSONParser();
     ArrayList<HashMap<String, String>> productsList;
     private static String url_products_details = "http://172.16.128.186//android_connect/get_residencias.php";
-   // private static String url_products_details = "http://192.168.0.49//android_connect/get_residencias.php";
+  //  private static String url_products_details = "http://192.168.0.34//android_connect/get_residencias.php";
 
 
     // JSON Node names
